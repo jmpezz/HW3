@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+Tweet with the most non-whitespace characters:
+<ul>
+<li>{{ tweets[0][0] }}<br><i>posted by</i> <strong>@{{ tweets[0][1] }}</strong> -- <i>{{  tweets[0][2]  }}</i><br>
+<br>
+
+</ul>
+
+{% endblock %}
