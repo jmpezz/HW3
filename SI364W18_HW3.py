@@ -58,7 +58,7 @@ class Tweet(db.Model):
     __tablename__ = 'tweets'
     id = db.Column(db.Integer, primary_key = True)
     text = db.Column(db.String(280))
-    user_id = db.Column(db.Integer, db.ForeignKey('users_id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     def __repr__(self):
         return "{} (ID: {})".format(self.text, str(self.id))
 
@@ -92,9 +92,9 @@ class User(db.Model):
 
 # HINT: Check out index.html where the form will be rendered to decide what field names to use in the form class definition
 class TweetForm(FlaskForm):
-    text = StringField('Enter the Tweet text (less than 280 characters): ', validators = [Required()])
-    username = StringField('Enter the username of the user (less than 64 characters): ', validators = [Required()])
-    display_name = StringField('Enter the display name of the Twitter user: ', validators = [Required()])
+    text = StringField('Enter the Tweet text (no more than 280 chars): ', validators = [Required(), Length(1, 280)])
+    username = StringField('Enter the username of the user (no "@"!): ', validators = [Required(), Length(1, 64)])
+    display_name = StringField('Enter the display name of the Twitter user (must be at least 2 words): ', validators = [Required()])
     submit = SubmitField('Submit')
 
 # TODO 364: Set up custom validation for this form such that:
@@ -103,11 +103,11 @@ class TweetForm(FlaskForm):
 
 # TODO 364: Make sure to check out the sample application linked in the readme to check if yours is like it!
 
-    def validate_name(self, field):
+    def validate_username(self, field):
         if field.data[0] == '@':
-            raise ValidationError('Username may NOT start an @ symbol!')
+            raise ValidationError('Username may NOT start with an @ symbol!')
 
-    def validate_dis_name(self, field):
+    def validate_display_name(self, field):
         if len(field.data.split()) < 2:
             raise ValidationError('Display name MUST be at least 2 words.')
 
@@ -147,7 +147,7 @@ def index():
     # Initialize the form
     form = TweetForm()
     # Get the number of Tweets
-    num_tweets = len(Tweet.query.all())
+    num_tweets = Tweet.query.count()
     # If the form was posted to this route,
     ## Get the data from the form
     if form.validate_on_submit():
@@ -182,7 +182,7 @@ def index():
             tweet = Tweet(text = text, user_id = user_id)
             db.session.add(tweet)
             db.session.commit()
-            flash('Tweet is successfully added!')
+            flash('Tweet successfully added!')
             return redirect(url_for('index'))
 
     # PROVIDED: If the form did NOT validate / was not submitted
@@ -228,7 +228,17 @@ def see_all_users():
 # may be useful for this problem!
 @app.route('/longest_tweet')
 def get_longest_tweet():
-    
+    tweet_list = []
+    no_whitespace = []
+    tweets = Tweet.query.all()
+    for x in tweets:
+        user = User.query.filter_by(id = x.user_id).all()
+        text = str(x.text)
+        tweet_tup = (text, user[0].username, user[0].display_name)
+        tweet_list.append(tweet_tup)
+    sort_alph = sorted(tweet_list, key = lambda x:x[0])
+    sort_tweets = sorted(sort_alph, key = lambda x: len(x[0].replace(' ', '')), reverse = True)
+    return render_template('longest_tweet.html', tweets = sort_tweets)
 
 
 if __name__ == '__main__':
